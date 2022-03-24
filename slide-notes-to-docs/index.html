@@ -6,7 +6,7 @@
 </head>
 <body>
   <h1>Slide Notes to Docs</h1>
-  <button>Select Google Slides presentation</button>
+  <button id="select_button" disabled>Select Google Slides presentation</button>
 
   <div id="g_id_onload"
     data-client_id="1092965391608-sm6vlhl55jnpi1v7hi86aqu784mlli94.apps.googleusercontent.com"
@@ -21,6 +21,8 @@
     const API_KEY = 'AIzaSyDbD23Z5G4n0R7BRZIQpHPG0WNU_JzC_2w';
     const CLIENT_ID = document.getElementById('g_id_onload').getAttribute('data-client_id');
     const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
+
+    const button = document.getElementById('select_button');
 
     function loadScript(url) {
       return new Promise((resolve, reject) => {
@@ -61,23 +63,57 @@
         tokenClient.requestAccessToken();
       });
       console.log('accessToken', accessToken)
-      createPicker();
+      button.disabled = false;
     }
 
+    button.addEventListener('click', createPicker);
     async function createPicker() {
+      button.disabled = true;
       const pickerBuilder = new gapi.picker.api.PickerBuilder();
-      const accessToken = gapi.auth.getToken();
-      console.log('picker token', accessToken);
       const picker = pickerBuilder
         .setAppId(APP_ID)
         .setDeveloperKey(API_KEY)
         .setOAuthToken(gapi.auth.getToken().access_token)
         .addView(google.picker.ViewId.PRESENTATIONS)
         .setCallback(data => {
-          console.log(data);
+          button.disabled = false;
+          if (data.action === 'picked') {
+            handlePickedDocuments(data.docs);
+          }
         })
         .build();
       picker.setVisible(true);
+    }
+
+    async function handlePickedDocuments(documents) {
+      for (const document of documents) {
+        try {
+          console.log(document);
+          const presentation = await gapi.client.slides.presentations.get({
+            presentationId: document.id
+          }).then(response => response.result);
+          console.log(presentation);
+
+          const notes = presentation.slides.map((slide, index) => {
+            const notesPage = slide.slideProperties?.notesPage;
+            const textElements = notesPage.pageElements
+              .map(pageElement => pageElement.shape?.text?.textElements ?? [])
+              .flat();
+            const text = textElements
+              .map(textElement => textElement?.textRun?.content ?? '')
+              .join('');
+            console.log(`slide ${index}`, text, textElements);
+            return text;
+          });
+
+          // const notesDoc = await gapi.client.documents.create({
+          //   title: `Notes for ${presentation.title}`
+          // }).then(response => response.result);
+
+        } catch (e) {
+          console.error('', e);
+        }
+      }
     }
   </script>
 
