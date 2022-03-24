@@ -8,8 +8,19 @@
   <h1>Slide Notes to Docs</h1>
   <button>Select Google Slides presentation</button>
 
+  <div id="g_id_onload"
+    data-client_id="1092965391608-sm6vlhl55jnpi1v7hi86aqu784mlli94.apps.googleusercontent.com"
+    data-auto_select="true"
+    data-cancel_on_tap_outside="false"
+    data-callback="onSignIn"
+  </div>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
   <script>
-    const CLIENT_ID = '1092965391608-sm6vlhl55jnpi1v7hi86aqu784mlli94.apps.googleusercontent.com';
+    const APP_ID = '1092965391608';
+    const API_KEY = 'AIzaSyDbD23Z5G4n0R7BRZIQpHPG0WNU_JzC_2w';
+    const CLIENT_ID = document.getElementById('g_id_onload').getAttribute('data-client_id');
+    const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
 
     function loadScript(url) {
       return new Promise((resolve, reject) => {
@@ -30,55 +41,46 @@
       });
       await gapi.client.init({});
       await Promise.all([
+          gapi.client.load('drive', 'v3'),
           gapi.client.load('docs', 'v1'),
           gapi.client.load('slides', 'v1')
         ]);
       return gapi;
     })();
 
-    const gisReady = (async function() {
-      await loadScript('https://accounts.google.com/gsi/client');
-      const tokenClient = google.accounts.oauth2.initTokenClient({
-          client_id: CLIENT_ID,
-          scope: 'https://www.googleapis.com/auth/drive.file',
-          prompt: 'consent',
-          callback: '',  // defined at request time in await/promise scope.
-      });
-      return async function(err) {
-        if (true) {
-        // if (err.result.error.code == 401 || (err.result.error.code == 403) &&
-        //     err.result.error.status == "PERMISSION_DENIED") {
-          // The access token is missing, invalid, or expired, prompt for user consent to obtain one.
-          await new Promise((resolve, reject) => {
-            try {
-              // Settle this promise in the response callback for requestAccessToken()
-              tokenClient.callback = (resp) => {
-                if (resp.error !== undefined) {
-                  reject(resp);
-                }
-                // GIS has automatically updated gapi.client with the newly issued access token.
-                console.log('gapi.client access token: ' + JSON.stringify(gapi.client.getToken()));
-                resolve(resp);
-              };
-              tokenClient.requestAccessToken();
-            } catch (err) {
-              console.log(err)
-            }
-          });
-        } else {
-          // Errors unrelated to authorization: server errors, exceeding quota, bad requests, and so on.
-          throw new Error(err);
-        }
-      };
-    })();
-
-    (async function() {
+    async function onSignIn(token) {
+      console.log('onSignIn', token);
       await gapiReady;
-      console.log('GAPI ready');
-      const getToken = await gisReady;
-      console.log('GIS ready');
-      getToken();
-    })();
+      const accessToken = await new Promise(function(resolve, reject) {
+        const tokenClient = google.accounts.oauth2.initTokenClient({
+          client_id: CLIENT_ID,
+          scope: SCOPES.join(' '),
+          prompt: '',
+          callback: resolve
+        });
+        tokenClient.requestAccessToken();
+      });
+      console.log('accessToken', accessToken)
+      createPicker();
+    }
+
+    async function createPicker() {
+      const pickerBuilder = new gapi.picker.api.PickerBuilder();
+      const accessToken = gapi.auth.getToken();
+      console.log('picker token', accessToken);
+      const picker = pickerBuilder
+        .setAppId(APP_ID)
+        .setDeveloperKey(API_KEY)
+        .setOAuthToken(gapi.auth.getToken().access_token)
+        .addView(google.picker.ViewId.PRESENTATIONS)
+        .setCallback(data => {
+          console.log(data);
+        })
+        .build();
+      picker.setVisible(true);
+    }
   </script>
+
+
 </body>
 </html>
