@@ -106,10 +106,16 @@
             return text;
           });
 
-          // const notesDoc = await gapi.client.documents.create({
-          //   title: `Notes for ${presentation.title}`
-          // }).then(response => response.result);
+          const notesDoc = await gapi.client.docs.documents.create({
+            title: `Notes for ${presentation.title}`
+          }).then(response => response.result);
+          console.log('notesDoc', notesDoc);
 
+          const notesDocLink = await gapi.client.drive.files.get({
+            fileId: notesDoc.documentId,
+            fields: 'webViewLink'
+          }).then(response => response.result?.webViewLink);
+          window.open(notesDocLink, '_blank');
         } catch (e) {
           console.error('', e);
         }
