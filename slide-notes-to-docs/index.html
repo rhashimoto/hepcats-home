@@ -18,7 +18,6 @@
 
   <script>
     const APP_ID = '1092965391608';
-    const API_KEY = 'AIzaSyDbD23Z5G4n0R7BRZIQpHPG0WNU_JzC_2w';
     const CLIENT_ID = document.getElementById('g_id_onload').getAttribute('data-client_id');
     const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
 
@@ -86,7 +85,6 @@
       const pickerBuilder = new gapi.picker.api.PickerBuilder();
       const picker = pickerBuilder
         .setAppId(APP_ID)
-        .setDeveloperKey(API_KEY)
         .setOAuthToken(gapi.auth.getToken().access_token)
         .addView(google.picker.ViewId.PRESENTATIONS)
         .setCallback(data => {
