@@ -176,10 +176,10 @@
                 }
               });
 
+              const { textStyle, fields } = convertStyle(noteElement.textRun.style ?? {});
               styleRequests.push({
                 updateTextStyle: {
-                  textStyle: convertStyle(noteElement.textRun.style ?? {}),
-                  fields: Array.from(STYLE_KEYS).join(),
+                  textStyle, fields,
                   range: {
                     segmentId: '',
                     startIndex: docIndex,
@@ -230,7 +230,20 @@
     }
 
     function convertStyle(slideStyle) {
-      const docsStyle = {};
+      const textStyle = {};
+      const fields = new Set([
+        'bold',
+        'italic',
+        'underline',
+        'strikethrough',
+        'smallCaps',
+        'fontSize',
+        'weightedFontFamily',
+        'baselineOffset',
+        'link',
+        'backgroundColor',
+        'foregroundColor',
+      ]);
       for (const [key, value] of Object.entries(slideStyle)) {
         switch (key) {
           case 'bold':
@@ -241,18 +254,32 @@
           case 'fontSize':
           case 'weightedFontFamily':
           case 'baselineOffset':
+            textStyle[key] = value;
+            break;
           case 'link':
-            docsStyle[key] = value;
+            textStyle[key] = value;
+            textStyle['foregroundColor'] = {
+              color: {
+                rgbColor: {
+                  red: 0.149,
+                  green: 0.259,
+                  blue: 0.545
+                }
+              }
+            };
             break;
           case 'backgroundColor':
           case 'foregroundColor':
             if (value.opaqueColor?.rgbColor) {
-              docsStyle[key] = { color: value.opaqueColor };
+              textStyle[key] = { color: value.opaqueColor };
             }
             break;
         }
       }
-      return docsStyle;
+      return {
+        textStyle,
+        fields: Array.from(fields).join()
+      };
     }
   </script>
 
