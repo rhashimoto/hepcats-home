@@ -95,22 +95,71 @@
           console.log(presentation);
 
           const notes = presentation.slides.map((slide, index) => {
-            const notesPage = slide.slideProperties?.notesPage;
-            const textElements = notesPage.pageElements
+            // Find first slide text string.
+            const title = slide.pageElements
+              .map(pageElement => pageElement.shape?.text?.textElements ?? [])
+              .flat()
+              .map(textElement => textElement.textRun?.content?.trim())
+              .filter(text => text)
+              .at(0);
+
+            // Extract notes.
+            const notesPage = slide.slideProperties?.notesPage ?? {};
+            const noteElements = notesPage.pageElements
               .map(pageElement => pageElement.shape?.text?.textElements ?? [])
               .flat();
-            const text = textElements
-              .map(textElement => textElement?.textRun?.content ?? '')
-              .join('');
-            console.log(`slide ${index}`, text, textElements);
-            return text;
+            
+            return { title, noteElements };
           });
 
-          const notesDoc = await gapi.client.docs.documents.create({
-            title: `Notes for ${presentation.title}`
-          }).then(response => response.result);
+          const notesDoc = { documentId: '1HjN6GU8OfRjvvsOGqgkX0ObA7DFPcwVposA-jLZoVrY' };
+          // const notesDoc = await gapi.client.docs.documents.create({
+          //   title: `Notes for ${presentation.title}`
+          // }).then(response => response.result);
           console.log('notesDoc', notesDoc);
+          
+          let docIndex = 1;
+          const requests = [];
+          notes.forEach((note, slideIndex) => {
+            const noteHeading = `Slide #${slideIndex}: ${note.title}\n`;
+            requests.push({
+              insertText: {
+                text: noteHeading,
+                location: {
+                  segmentId: '',
+                  index: docIndex
+                }
+              }
+            }, {
+              updateParagraphStyle: {
+                paragraphStyle: {
+                  namedStyleType: 'HEADING_1'
+                },
+                fields: 'namedStyleType',
+                range: {
+                  segmentId: '',
+                  startIndex: docIndex,
+                  endIndex: docIndex + noteHeading.length
+                }
+              }
+            });
+            docIndex += noteHeading.length;
 
+            // TODO: textElements
+          });
+
+          // const currentStructure = await gapi.client.docs.documents.get({
+          //   documentId: notesDoc.documentId
+          // }).then(response => response.result);
+          // console.log('doc', currentStructure);
+
+          const updateResult = await gapi.client.docs.documents.batchUpdate({
+            documentId: notesDoc.documentId,
+            requests
+          }).then(response => response.result);
+          console.log('updateResult', updateResult);
+
+          // Open the notes doc in a new tab.
           const notesDocLink = await gapi.client.drive.files.get({
             fileId: notesDoc.documentId,
             fields: 'webViewLink'
