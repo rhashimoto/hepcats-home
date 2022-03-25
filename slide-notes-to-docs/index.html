@@ -127,12 +127,6 @@
             return { title, noteElements };
           });
 
-          const notesDoc = { documentId: '1HjN6GU8OfRjvvsOGqgkX0ObA7DFPcwVposA-jLZoVrY' };
-          // const notesDoc = await gapi.client.docs.documents.create({
-          //   title: `Notes for ${presentation.title}`
-          // }).then(response => response.result);
-          console.log('notesDoc', notesDoc);
-          
           let docIndex = 1;
           const textRequests = [];
           const styleRequests = [];
@@ -202,6 +196,11 @@
             docIndex += 1;
           });
 
+          const notesDoc = await gapi.client.docs.documents.create({
+            title: `Notes for ${presentation.title}`
+          }).then(response => response.result);
+          console.log('notesDoc', notesDoc);
+          
           // const currentStructure = await gapi.client.docs.documents.get({
           //   documentId: notesDoc.documentId
           // }).then(response => response.result);
