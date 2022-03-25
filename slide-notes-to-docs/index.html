@@ -137,7 +137,7 @@
           const textRequests = [];
           const styleRequests = [];
           notes.forEach((note, slideIndex) => {
-            const noteHeading = `Slide #${slideIndex}: ${note.title}\n`;
+            const noteHeading = `Slide #${slideIndex + 1}: ${note.title}\n`;
             textRequests.push({
               insertText: {
                 text: noteHeading,
