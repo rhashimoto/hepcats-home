@@ -22,12 +22,12 @@
     const CLIENT_ID = document.getElementById('g_id_onload').getAttribute('data-client_id');
     const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
 
-    const TEXT_STYLES = new Set([
+    const STYLE_KEYS = new Set([
       'bold',
       'italic',
       'underline',
       'strikethrough',
-      'smallcaps',
+      'smallCaps',
       'fontSize',
       'weightedFontFamily',
       'baselineOffset',
@@ -132,10 +132,11 @@
           console.log('notesDoc', notesDoc);
           
           let docIndex = 1;
-          const requests = [];
+          const textRequests = [];
+          const styleRequests = [];
           notes.forEach((note, slideIndex) => {
             const noteHeading = `Slide #${slideIndex}: ${note.title}\n`;
-            requests.push({
+            textRequests.push({
               insertText: {
                 text: noteHeading,
                 location: {
@@ -143,7 +144,9 @@
                   index: docIndex
                 }
               }
-            }, {
+            });
+            
+            styleRequests.push({
               updateParagraphStyle: {
                 paragraphStyle: {
                   namedStyleType: 'HEADING_1'
@@ -159,8 +162,9 @@
             docIndex += noteHeading.length;
 
             for (const noteElement of note.noteElements) {
+              console.log('textRun', noteElement.textRun);
               const text = noteElement.textRun.content;
-              requests.push({
+              textRequests.push({
                 insertText: {
                   text,
                   location: {
@@ -172,12 +176,11 @@
 
               const textStyle = Object.fromEntries(
                 Object.entries(noteElement.textRun.style ?? {}).filter(([key, value]) => {
-                  return TEXT_STYLES.has(key);
+                  return STYLE_KEYS.has(key);
                 }));
-              const fields = Object.getOwnPropertyNames(textStyle).join();
-              console.log(fields, textStyle)
+              const fields = Array.from(STYLE_KEYS).join();
               if (fields) {
-                requests.push({
+                styleRequests.push({
                   updateTextStyle: {
                     textStyle,
                     fields,
@@ -192,7 +195,7 @@
 
               docIndex += text.length;
             }
-            requests.push({
+            textRequests.push({
               insertText: {
                 text: '\n',
                 location: {
@@ -208,12 +211,16 @@
           //   documentId: notesDoc.documentId
           // }).then(response => response.result);
           // console.log('doc', currentStructure);
-
-          const updateResult = await gapi.client.docs.documents.batchUpdate({
+          console.log('textRequests', textRequests);
+          console.log('styleRequests', styleRequests);
+          await gapi.client.docs.documents.batchUpdate({
             documentId: notesDoc.documentId,
-            requests
+            requests: textRequests
           }).then(response => response.result);
-          console.log('updateResult', updateResult);
+          await gapi.client.docs.documents.batchUpdate({
+            documentId: notesDoc.documentId,
+            requests: styleRequests
+          }).then(response => response.result);
 
           // Open the notes doc in a new tab.
           const notesDocLink = await gapi.client.drive.files.get({
