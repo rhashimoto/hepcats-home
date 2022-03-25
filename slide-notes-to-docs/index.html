@@ -22,6 +22,18 @@
     const CLIENT_ID = document.getElementById('g_id_onload').getAttribute('data-client_id');
     const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
 
+    const TEXT_STYLES = new Set([
+      'bold',
+      'italic',
+      'underline',
+      'strikethrough',
+      'smallcaps',
+      'fontSize',
+      'weightedFontFamily',
+      'baselineOffset',
+      'link'
+    ]);
+
     const button = document.getElementById('select_button');
 
     function loadScript(url) {
@@ -107,7 +119,8 @@
             const notesPage = slide.slideProperties?.notesPage ?? {};
             const noteElements = notesPage.pageElements
               .map(pageElement => pageElement.shape?.text?.textElements ?? [])
-              .flat();
+              .flat()
+              .filter(textElement => textElement.textRun?.content)
             
             return { title, noteElements };
           });
@@ -145,7 +158,50 @@
             });
             docIndex += noteHeading.length;
 
-            // TODO: textElements
+            for (const noteElement of note.noteElements) {
+              const text = noteElement.textRun.content;
+              requests.push({
+                insertText: {
+                  text,
+                  location: {
+                    segmentId: '',
+                    index: docIndex
+                  }
+                }
+              });
+
+              const textStyle = Object.fromEntries(
+                Object.entries(noteElement.textRun.style ?? {}).filter(([key, value]) => {
+                  return TEXT_STYLES.has(key);
+                }));
+              const fields = Object.getOwnPropertyNames(textStyle).join();
+              console.log(fields, textStyle)
+              if (fields) {
+                requests.push({
+                  updateTextStyle: {
+                    textStyle,
+                    fields,
+                    range: {
+                      segmentId: '',
+                      startIndex: docIndex,
+                      endIndex: docIndex + text.length
+                    }
+                  }
+                });
+              }
+
+              docIndex += text.length;
+            }
+            requests.push({
+              insertText: {
+                text: '\n',
+                location: {
+                  segmentId: '',
+                  index: docIndex
+                }
+              }
+            });
+            docIndex += 1;
           });
 
           // const currentStructure = await gapi.client.docs.documents.get({
