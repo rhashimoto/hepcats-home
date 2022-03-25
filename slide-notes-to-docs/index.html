@@ -223,7 +223,7 @@
           }).then(response => response.result?.webViewLink);
           window.open(notesDocLink, '_blank');
         } catch (e) {
-          console.error('', e);
+          alert(e.message);
         }
       }
     }
