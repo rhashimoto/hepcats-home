@@ -30,6 +30,8 @@
       'smallCaps',
       'fontSize',
       'weightedFontFamily',
+      'foregroundColor',
+      'backgroundColor',
       'baselineOffset',
       'link'
     ]);
@@ -174,24 +176,17 @@
                 }
               });
 
-              const textStyle = Object.fromEntries(
-                Object.entries(noteElement.textRun.style ?? {}).filter(([key, value]) => {
-                  return STYLE_KEYS.has(key);
-                }));
-              const fields = Array.from(STYLE_KEYS).join();
-              if (fields) {
-                styleRequests.push({
-                  updateTextStyle: {
-                    textStyle,
-                    fields,
-                    range: {
-                      segmentId: '',
-                      startIndex: docIndex,
-                      endIndex: docIndex + text.length
-                    }
+              styleRequests.push({
+                updateTextStyle: {
+                  textStyle: convertStyle(noteElement.textRun.style ?? {}),
+                  fields: Array.from(STYLE_KEYS).join(),
+                  range: {
+                    segmentId: '',
+                    startIndex: docIndex,
+                    endIndex: docIndex + text.length
                   }
-                });
-              }
+                }
+              });
 
               docIndex += text.length;
             }
@@ -232,6 +227,32 @@
           console.error('', e);
         }
       }
+    }
+
+    function convertStyle(slideStyle) {
+      const docsStyle = {};
+      for (const [key, value] of Object.entries(slideStyle)) {
+        switch (key) {
+          case 'bold':
+          case 'italic':
+          case 'underline':
+          case 'strikethrough':
+          case 'smallCaps':
+          case 'fontSize':
+          case 'weightedFontFamily':
+          case 'baselineOffset':
+          case 'link':
+            docsStyle[key] = value;
+            break;
+          case 'backgroundColor':
+          case 'foregroundColor':
+            if (value.opaqueColor?.rgbColor) {
+              docsStyle[key] = { color: value.opaqueColor };
+            }
+            break;
+        }
+      }
+      return docsStyle;
     }
   </script>
 
