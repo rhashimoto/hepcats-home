@@ -3,23 +3,41 @@
 <head>
   <meta charset="utf-8">
   <title>Slide Notes to Docs</title>
+  <title>GAPI demo</title>
+  <script id="google-config" type="application/json">
+    {
+      "GOOGLE_APP_ID": "1092965391608",
+      "GOOGLE_CLIENT_ID": "1092965391608-sm6vlhl55jnpi1v7hi86aqu784mlli94.apps.googleusercontent.com",
+      "GOOGLE_DISCOVERY_DOCS": [
+        "https://www.googleapis.com/discovery/v1/apis/drive/v3/rest",
+        "https://slides.googleapis.com/$discovery/rest?version=v1",
+        "https://docs.googleapis.com/$discovery/rest?version=v1"
+      ],
+      "GOOGLE_GAPI_LIBRARIES": "client:picker",
+      "GOOGLE_SCOPES": [
+        "https://www.googleapis.com/auth/drive.file"
+      ]
+    }
+  </script>
 </head>
 <body>
   <h1>Slide Notes to Docs</h1>
-  <button id="select_button" disabled>Select Google Slides presentation</button>
+  <button id="select_button">Select Google Slides presentation</button>
 
-  <div id="g_id_onload"
+  <!-- <div id="g_id_onload"
     data-client_id="1092965391608-sm6vlhl55jnpi1v7hi86aqu784mlli94.apps.googleusercontent.com"
     data-auto_select="true"
     data-cancel_on_tap_outside="false"
     data-callback="onSignIn"
-  </div>
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  </div> -->
+  <!-- <script src="https://accounts.google.com/gsi/client" async defer></script> -->
 
-  <script>
+  <script type="module">
+    import { getGAPI, getAccessToken } from './gapi.js';
+
     const APP_ID = '1092965391608';
-    const CLIENT_ID = document.getElementById('g_id_onload').getAttribute('data-client_id');
-    const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
+    // const CLIENT_ID = document.getElementById('g_id_onload').getAttribute('data-client_id');
+    // const SCOPES = ['https://www.googleapis.com/auth/drive.file'];
 
     const STYLE_KEYS = new Set([
       'bold',
@@ -37,55 +55,57 @@
 
     const button = document.getElementById('select_button');
 
-    function loadScript(url) {
-      return new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = url;
-        script.onload = resolve;
-        script.onerror = ({ message} ) => reject(new Error('message'));
-        script.async  = true;
-        script.defer = true;
-        document.querySelector('body').append(script);
-      });
-    }
+    // function loadScript(url) {
+    //   return new Promise((resolve, reject) => {
+    //     const script = document.createElement('script');
+    //     script.src = url;
+    //     script.onload = resolve;
+    //     script.onerror = ({ message} ) => reject(new Error('message'));
+    //     script.async  = true;
+    //     script.defer = true;
+    //     document.querySelector('body').append(script);
+    //   });
+    // }
 
-    const gapiReady = (async function() {
-      await loadScript('https://apis.google.com/js/api.js');
-      await new Promise((resolve, reject) => {
-        gapi.load('client:picker', { callback: resolve, onerror: reject });
-      });
-      await gapi.client.init({});
-      await Promise.all([
-          gapi.client.load('drive', 'v3'),
-          gapi.client.load('docs', 'v1'),
-          gapi.client.load('slides', 'v1')
-        ]);
-      return gapi;
-    })();
+    // const gapiReady = (async function() {
+    //   await loadScript('https://apis.google.com/js/api.js');
+    //   await new Promise((resolve, reject) => {
+    //     gapi.load('client:picker', { callback: resolve, onerror: reject });
+    //   });
+    //   await gapi.client.init({});
+    //   await Promise.all([
+    //       gapi.client.load('drive', 'v3'),
+    //       gapi.client.load('docs', 'v1'),
+    //       gapi.client.load('slides', 'v1')
+    //     ]);
+    //   return gapi;
+    // })();
 
-    async function onSignIn(token) {
-      console.log('onSignIn', token);
-      await gapiReady;
-      const accessToken = await new Promise(function(resolve, reject) {
-        const tokenClient = google.accounts.oauth2.initTokenClient({
-          client_id: CLIENT_ID,
-          scope: SCOPES.join(' '),
-          prompt: '',
-          callback: resolve
-        });
-        tokenClient.requestAccessToken();
-      });
-      console.log('accessToken', accessToken)
-      button.disabled = false;
-    }
+    // async function onSignIn(token) {
+    //   console.log('onSignIn', token);
+    //   await gapiReady;
+    //   const accessToken = await new Promise(function(resolve, reject) {
+    //     const tokenClient = google.accounts.oauth2.initTokenClient({
+    //       client_id: CLIENT_ID,
+    //       scope: SCOPES.join(' '),
+    //       prompt: '',
+    //       callback: resolve
+    //     });
+    //     tokenClient.requestAccessToken();
+    //   });
+    //   console.log('accessToken', accessToken)
+    //   button.disabled = false;
+    // }
 
     button.addEventListener('click', createPicker);
     async function createPicker() {
-      button.disabled = true;
+      // button.disabled = true;
+      const gapi = await getGAPI();
+      const token = await getAccessToken(gapi);      
       const pickerBuilder = new gapi.picker.api.PickerBuilder();
       const picker = pickerBuilder
         .setAppId(APP_ID)
-        .setOAuthToken(gapi.auth.getToken().access_token)
+        .setOAuthToken(token.access_token)
         .addView(google.picker.ViewId.PRESENTATIONS)
         .setCallback(data => {
           button.disabled = false;
